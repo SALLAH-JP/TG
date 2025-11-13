@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WasteGraph — Collecte des déchets</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>WasteGraph — Collecte des déchets</h1>
+    <div class="toolbar">
+      <button>Colorier (jours/équipes)</button>
+      <div class="dropdown">
+        <button class="dropbtn">Source ▼</button>
+        <div class="dropdown-content">
+          <a href="#">Dépot</a>
+          <a href="#">A</a>
+          <a href="#">B</a>
+          <a href="#">C</a>
+        </div>
+      </div>
+      <button>Dijkstra</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="graph-container">
+      <div id="graph-placeholder">
+        <p>[ Zone du graphe — à générer par JavaScript ]</p>
+      </div>
+    </section>
+
+    <aside id="legend-panel">
+      <h2>Légende</h2>
+      <ul class="legend">
+        <li><span class="dot team0"></span> Jour/équipe 0</li>
+        <li><span class="dot team1"></span> Jour/équipe 1</li>
+        <li><span class="dot team2"></span> Jour/équipe 2</li>
+      </ul>
+
+      <h2>Résultats</h2>
+      <div class="results">
+        <p><strong>Chemin :</strong> DEPOT → E → D → C</p>
+        <p><strong>Distance :</strong> 5.5</p>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

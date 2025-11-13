@@ -1,0 +1,144 @@
+* {
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #222;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  background: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.8rem;
+}
+
+button, .dropbtn {
+  background: #f3f4f6;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+button:hover, .dropbtn:hover {
+  background: #e5e7eb;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background: white;
+  min-width: 120px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  z-index: 10;
+}
+
+.dropdown-content a {
+  color: #333;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {
+  background-color: #f0f0f0;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+#graph-container {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  margin: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+#graph-placeholder {
+  border: 2px dashed #ccc;
+  padding: 2rem;
+  border-radius: 10px;
+  text-align: center;
+  color: #999;
+}
+
+#legend-panel {
+  flex: 1;
+  background: white;
+  margin: 1rem 1rem 1rem 0;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+#legend-panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.team0 { background-color: #9bd0ff; }
+.team1 { background-color: #ffef8f; }
+.team2 { background-color: #b5f7b5; }
+
+.results p {
+  margin: 0.2rem 0;
+}
