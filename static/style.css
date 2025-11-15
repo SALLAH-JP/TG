@@ -142,3 +142,52 @@ main {
 .results p {
   margin: 0.2rem 0;
 }
+
+#graphCanvas {
+  border: 1px solid #000;
+  background-color: #f9f9f9;
+}
+
+.toolbar button, .dropbtn {
+  margin-right: 10px;
+}
+
+.dropdown {
+  display: inline-block;
+  position: relative;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  z-index: 1;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 5px 10px;
+  text-decoration: none;
+  color: black;
+}
+
+#legend-panel {
+  margin-top: 20px;
+}
+
+.dot {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.team0 { background-color: #9bd0ff; }
+.team1 { background-color: #ffef8f; }
+.team2 { background-color: #b5f7b5; }
