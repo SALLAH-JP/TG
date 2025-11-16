@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import psycopg2
 
@@ -17,13 +17,14 @@ def get_connection():
     )
 
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-@app.route('/graph')
-def get_graph():
+
+def load_graph():
     conn = get_connection()
     cur = conn.cursor()
 
@@ -59,13 +60,20 @@ def get_graph():
     cur.close()
     conn.close()
 
+    return nodes, edges
+
+
+@app.route('/graph')
+def get_graph():
+    nodes, edges = load_graph()
+
     # --- Retourner deux listes ---
     return jsonify({"nodes": nodes, "edges": edges})
 
 
-@app.route('/algo/dijkstra?src=A&dst=Z')
+
 def dijkstra(graph, start, goal):
-    # Initialisation
+    
     unvisited = set(graph.keys())
     distances = {node: float('inf') for node in graph}
     distances[start] = 0
@@ -90,7 +98,7 @@ def dijkstra(graph, start, goal):
             return path, distances[path[-1]]
 
         # Mettre à jour les voisins
-        for neighbor, weight in graph[current].items():
+        for neighbor, weight in graph[current]:
             if neighbor in unvisited:
                 new_distance = distances[current] + weight
                 if new_distance < distances[neighbor]:
@@ -100,24 +108,75 @@ def dijkstra(graph, start, goal):
     return None, float('inf')  # Aucun chemin trouvé
 
 
+@app.route("/algo/dijkstra")
+def api_dijkstra():
+    src = request.args.get("src")
+    dst = request.args.get("dst")
+
+    nodes, edges = load_graph()
+    graph = {}
+
+    # Initialiser chaque nœud avec une liste vide
+    for node in nodes:
+        graph[node["name"]] = []
+
+    # Ajouter les tuples
+    for edge in edges:
+        source = edge["from"]
+        desti = edge["to"]
+        weight = edge["weight"]
+
+        # Ajouter (destination, poids)
+        graph[source].append((desti, weight))
+        graph[desti].append((source, weight))
+
+
+    if not src or not dst:
+        return jsonify({"error": "src et dst sont requis"}), 400
+
+    path, distance = dijkstra(graph, src, dst)
+
+    return jsonify({"path": path, "distance": distance})
+
+
+
 @app.route('/algo/coloring')
-def color(graph):
-    colors = {}  # {node: color}
+def color():
+    nodes, edges = load_graph()
+    graph = {}
 
-    for node in edges:  
-        # couleurs déjà utilisées par les voisins
-        neighbor_colors = {colors[n] for n in edges[node] if n in colors}
+    # Initialiser chaque nœud avec une liste vide
+    for node in nodes:
+        graph[node["name"]] = []
 
-        # trouver la première couleur disponible
-        c = 0
-        while c in neighbor_colors:
-            c += 1
-        
-        colors[node] = c
+    # Ajouter les tuples
+    for edge in edges:
+        source = edge["from"]
+        desti = edge["to"]
+        weight = edge["weight"]
 
-    return colors
+        # Ajouter (destination, poids)
+        graph[source].append((desti, weight))
+        graph[desti].append((source, weight))
 
+
+    degres = {noeud: len(voisins) for noeud, voisins in graph.items()}
+    
+    # 2️ Trier les noeuds par degré décroissant
+    noeuds_tries = sorted(graph.keys(), key=lambda n: degres[n], reverse=True)
+
+    couleur_noeud = {n : 0 for n in graph}
+
+    # 3️ Colorier chaque noeud
+    for noeud in range(len(noeuds_tries) - 1):
+        voisins = [v[0] for v in graph[noeuds_tries[noeud]]]  # on prend juste le nom des voisins
+
+        for col_node in couleur_noeud:
+            if not (col_node in voisins) and couleur_noeud[col_node] == 0:
+                couleur_noeud[col_node] = noeud + 1
+
+    return jsonify(couleur_noeud)
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)

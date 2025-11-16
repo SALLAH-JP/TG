@@ -3,6 +3,24 @@ const ctx = canvas.getContext("2d");
 
 let nodes = [];
 let edges = [];
+let path = [];
+let teams = {};
+const colors = [
+    "#FFFFFF", // blanc
+    "#FF0000", // rouge
+    "#00FF00", // vert
+    "#0000FF", // bleu
+    "#FFFF00", // jaune
+    "#FFA500", // orange
+    "#800080", // violet
+    "#00FFFF", // cyan
+    "#FFC0CB", // rose
+    "#808080", // gris
+    "#A52A2A", // marron
+    "#008000", // vert foncé
+    "#000000"  // noir
+];
+
 
 function drawGraph() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -27,7 +45,7 @@ function drawGraph() {
   nodes.forEach(node => {
     ctx.beginPath();
     ctx.arc(node.x, node.y, 35, 0, Math.PI * 2);
-    ctx.fillStyle = "#9bd0ff";
+    ctx.fillStyle = colors[teams[node.name]];
     ctx.fill();
     ctx.stroke();
 
@@ -48,8 +66,46 @@ async function getGraph() {
         nodes = data.nodes;
         edges = data.edges;
 
-        console.log("Nodes inside function:", nodes);
-        console.log("Edges inside function:", edges);
+        nodes.forEach(node => {
+            teams[node.name] = 0;
+        });
+
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function getPath(scr, dst) {
+    try {
+        const response = await fetch(`http://127.0.0.1:5000/algo/dijkstra?src=${scr}&dst=${dst}`);
+        const data = await response.json();
+
+        document.getElementById("path").textContent = data.path.join(" → ");
+        document.getElementById("distance").textContent = data.distance;
+
+        // remplir les listes globales
+        path = data.path;
+
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+
+async function getTeams(scr, dst) {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/algo/coloring');
+        const data = await response.json();
+
+        //document.getElementById("path").textContent = data.path.join(" → ");
+        //document.getElementById("distance").textContent = data.distance;
+
+        // remplir les listes globales
+        
+        teams = data;
+        drawGraph();
+
+
     } catch (err) {
         console.error(err);
     }
@@ -57,10 +113,24 @@ async function getGraph() {
 
 
 
-
 async function main() {
     await getGraph();
     drawGraph();
+
+    const selectS = document.getElementById('source');
+    const selectD = document.getElementById('destination');
+
+    nodes.forEach(node => {
+        const optionS = document.createElement('option'); // crée une option
+        optionS.value = node.name;  // valeur envoyée / utilisée par onclick
+        optionS.text = node.name;   // texte affiché
+        selectS.appendChild(optionS); // ajoute l'option au select
+
+        const optionD = document.createElement('option'); // crée une option
+        optionD.value = node.name;  // valeur envoyée / utilisée par onclick
+        optionD.text = node.name;   // texte affiché
+        selectD.appendChild(optionD); // ajoute l'option au select
+    });
 }
 
 main();
