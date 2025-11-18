@@ -239,3 +239,32 @@ main {
     background-color: #e8e8e8;
     outline: none;
 }
+
+#graph-container {
+    width: 95%;
+    height: 95%;
+    display: flex;
+}
+
+#graphCanvas {
+    width: 95%;
+    height: 95%;
+}
+
+#legend-panel {
+    display: flex;
+    flex-direction: column;  /* disposition verticale */
+    height: 100%;            /* ou hauteur fixe si nécessaire */
+}
+
+#legend-section,
+#results-section {
+    flex: 1;                 /* chaque section prend 50% */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    overflow: auto;          /* pour le contenu qui dépasse */
+}
+

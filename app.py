@@ -29,29 +29,26 @@ def load_graph():
     cur = conn.cursor()
 
     # --- Récupérer les nodes ---
-    cur.execute("SELECT id, name, x, y, capacity FROM nodes;")
+    cur.execute("SELECT name, x, y FROM nodes;")
     nodes_data = cur.fetchall()
     
     nodes = []
-    id_to_name = {}
-    for node_id, name, x, y, capacity in nodes_data:
+    for name, x, y in nodes_data:
         nodes.append({
             "name": name,
             "x": x,
-            "y": y,
-            "capacity": capacity
+            "y": y
         })
-        id_to_name[node_id] = name
 
     # --- Récupérer les edges ---
     cur.execute("SELECT from_node, to_node, weight, undirected FROM edges;")
     edges_data = cur.fetchall()
 
     edges = []
-    for from_id, to_id, weight, undirected in edges_data:
+    for from_node, to_node, weight, undirected in edges_data:
         edge = {
-            "from": id_to_name[from_id],
-            "to": id_to_name[to_id],
+            "from": from_node,
+            "to": to_node,
             "weight": weight,
             "undirected": undirected
         }
@@ -176,6 +173,114 @@ def color():
                 couleur_noeud[col_node] = noeud + 1
 
     return jsonify(couleur_noeud)
+
+
+
+
+@app.route('/graph/node', methods=['POST'])
+def add_node():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    data = request.get_json()
+    name = data.get('name')
+    x = data.get('x')
+    y = data.get('y')
+
+    try:
+        cur.execute(
+            "INSERT INTO nodes (name, x, y) VALUES (%s, %s, %s)",
+            (name, float(x), float(y))
+        )
+        conn.commit()
+        return jsonify({"status": "success", "node": name})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+    cur.close()
+    conn.close()
+
+
+
+
+@app.route('/graph/edge', methods=['POST'])
+def add_edge():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    data = request.get_json()
+    from_node = data.get('from')
+    to_node = data.get('to')
+    weight = data.get('weight')
+
+    try:
+        cur.execute(
+            "INSERT INTO edges (from_node, to_node, weight) VALUES (%s, %s, %s)",
+            (from_node, to_node, weight)
+        )
+        conn.commit()
+        return jsonify({"status": "success", "edge": data})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+    cur.close()
+    conn.close()
+
+
+
+
+@app.route('/graph/node/<name>', methods=['DELETE'])
+def del_node(name):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("DELETE FROM nodes WHERE name = %s", (name,))
+        conn.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+    cur.close()
+    conn.close()
+
+
+
+@app.route('/graph/edge', methods=['DELETE'])
+def del_edge():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    data = request.get_json()
+    from_node = data.get('from')
+    to_node = data.get('to')
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM edges
+            WHERE ((from_node = %s) AND (to_node = %s))
+               OR ((from_node = %s) AND (to_node = %s))
+            """,
+            (from_node, to_node, to_node, from_node)
+        )
+        conn.commit()
+        return jsonify({"status": "success", "edge": data})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+    cur.close()
+    conn.close()
+
 
 
 if __name__ == "__main__":

@@ -23,28 +23,39 @@
 			</div>
 
 			<button onclick="getPath(document.getElementById('source').value, document.getElementById('destination').value)">Rechercher(Dijkstra)</button>
+			<div>
+				<select id="actionSelect">
+				    <option value="addNode">Ajouter un nœud</option>
+				    <option value="delNode">Supprimer un nœud</option>
+				    <option value="addEdge">Ajouter une arête</option>
+				    <option value="delEdge">Supprimer une arête</option>
+				  </select>
+
+				  <button id="actionBtn" onclick="modifGraph()">OK</button>
+			<div>
 		</div>
 	</header>
 
 	<main>
 		<section id="graph-container">
-			<canvas id="graphCanvas" width="700" height="550"></canvas>
+			<canvas id="graphCanvas"></canvas>
 		</section>
 
 		<aside id="legend-panel">
-			<h2>Légende</h2>
-			<ul class="legend">
-				<li><span class="dot team0"></span> Jour/équipe 0</li>
-				<li><span class="dot team1"></span> Jour/équipe 1</li>
-				<li><span class="dot team2"></span> Jour/équipe 2</li>
-			</ul>
+		    <div id="legend-section">
+		        <h2>Légende</h2>
+		        <ul class="legend">Aucune Equipe</ul>
+		    </div>
 
-			<h2>Résultats</h2>
-			<div class="results">
-				<p><strong>Chemin :</strong> <span id="path">Aucun chemin trouvé</span></p>
-				<p><strong>Distance :</strong> <span id="distance">Infini</span></p>
-			</div>
+		    <div id="results-section">
+		        <h2>Résultats</h2>
+		        <div class="results">
+		            <p><strong>Chemin :</strong> <span id="path">Aucun chemin trouvé</span></p>
+		            <p><strong>Distance :</strong> <span id="distance">Infini</span></p>
+		        </div>
+		    </div>
 		</aside>
+
 	</main>
 
 	<script src="{{ url_for('static', filename='app.js') }}"></script>

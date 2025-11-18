@@ -1,0 +1,102 @@
+<style>
+/* Box globale */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    font-family: sans-serif;
+}
+
+/* ---- Bouton principal ---- */
+.main-btn {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 6px;
+}
+
+/* Partie gauche : texte dynamique */
+.main-text {
+    flex: 1;
+}
+
+/* Partie droite : flèche */
+.arrow-btn {
+    padding-left: 8px;
+    cursor: pointer;
+}
+
+/* ---- Menu déroulant ---- */
+.dropdown-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 160px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+/* Inputs radio cachés */
+.dropdown input[type="radio"] {
+    display: none;
+}
+
+/* Afficher la liste quand on clique sur la flèche */
+#toggle:checked ~ .dropdown-list {
+    display: block;
+}
+
+/* Lien du menu */
+.dropdown-list label {
+    display: block;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.dropdown-list label:hover {
+    background: #eee;
+}
+
+/* ---- Changer texte du bouton ---- */
+#add:checked ~ .main-btn .main-text::before {
+    content: "Ajouter un nœud";
+}
+
+#del:checked ~ .main-btn .main-text::before {
+    content: "Supprimer un nœud";
+}
+
+#edge:checked ~ .main-btn .main-text::before {
+    content: "Ajouter une arête";
+}
+</style>
+
+<div class="dropdown">
+    
+    <!-- Sélecteurs invisibles -->
+    <input type="radio" name="mode" id="add" checked>
+    <input type="radio" name="mode" id="del">
+    <input type="radio" name="mode" id="edge">
+
+    <!-- Toggle menu -->
+    <input type="checkbox" id="toggle" hidden>
+
+    <!-- Bouton principal -->
+    <button class="main-btn">
+        <span class="main-text"></span>
+        <label for="toggle" class="arrow-btn">▼</label>
+    </button>
+
+    <!-- Menu déroulant -->
+    <div class="dropdown-list">
+        <label for="add" onclick="document.getElementById('toggle').checked=false;">Ajouter un nœud</label>
+        <label for="del" onclick="document.getElementById('toggle').checked=false;">Supprimer un nœud</label>
+        <label for="edge" onclick="document.getElementById('toggle').checked=false;">Ajouter une arête</label>
+    </div>
+</div>
