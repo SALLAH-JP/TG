@@ -10,8 +10,6 @@
 	<header>
 		<h1>WasteGraph — Collecte des déchets</h1>
 		<div class="toolbar">
-			<button onclick="getTeams()">Colorier(jours/équipes)</button>
-
 			<div class="dropdown">
 				<label for="source">Source :</label>
 				<select id="source" name="source"></select>
@@ -23,6 +21,7 @@
 			</div>
 
 			<button onclick="getPath(document.getElementById('source').value, document.getElementById('destination').value)">Rechercher(Dijkstra)</button>
+			<button onclick="getTeams()">Colorier(jours/équipes)</button>
 			<div>
 				<select id="actionSelect">
 				    <option value="addNode">Ajouter un nœud</option>
@@ -32,7 +31,7 @@
 				  </select>
 
 				  <button id="actionBtn" onclick="modifGraph()">OK</button>
-			<div>
+			</div>
 		</div>
 	</header>
 

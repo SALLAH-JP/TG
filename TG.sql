@@ -48,4 +48,4 @@ INSERT INTO edges (from_node, to_node, weight, undirected) VALUES ('C', 'G', 1.5
 -- D ↔ B (déjà ajouté)
 -- autres arêtes déjà couvertes par non-orienté
 
-SELECT * FROM edges;
+SELECT * FROM nodes;

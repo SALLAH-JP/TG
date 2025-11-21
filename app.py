@@ -129,9 +129,12 @@ def api_dijkstra():
 
 
     if not src or not dst:
-        return jsonify({"error": "src et dst sont requis"}), 400
+        return jsonify({"path": [], "distance": -1})
 
     path, distance = dijkstra(graph, src, dst)
+    if distance == float('inf'):
+        distance = -1
+        path = []
 
     return jsonify({"path": path, "distance": distance})
 
@@ -233,10 +236,13 @@ def add_edge():
 
 
 
-@app.route('/graph/node/<name>', methods=['DELETE'])
-def del_node(name):
+@app.route('/graph/node', methods=['DELETE'])
+def del_node():
     conn = get_connection()
     cur = conn.cursor()
+
+    data = request.get_json()
+    name = data.get('name')
 
     try:
 

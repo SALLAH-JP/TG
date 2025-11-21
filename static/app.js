@@ -25,17 +25,34 @@ let nodeCount = 0;
 
 
 function drawGraph() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Arêtes
-  edges.forEach(edge => {
-    drawEdge(edge.from, edge.to, edge.weight);
-  });
+    edges.forEach(edge => {
+        drawEdge(edge.from, edge.to, edge.weight);
+    });
 
-  // Nœuds
-  nodes.forEach(node => {
-    drawNode(node.x, node.y, node.name);
-  });
+    // Nœuds
+    nodes.forEach(node => {
+        drawNode(node.x, node.y, node.name);
+    });
+
+
+    const selectS = document.getElementById('source');
+    selectS.innerHTML = "";
+    const selectD = document.getElementById('destination');
+    selectD.innerHTML = "";
+    nodes.forEach(node => {
+        const optionS = document.createElement('option'); // crée une option
+        optionS.value = node.name;  // valeur envoyée / utilisée par onclick
+        optionS.text = node.name;   // texte affiché
+        selectS.appendChild(optionS); // ajoute l'option au select
+
+        const optionD = document.createElement('option'); // crée une option
+        optionD.value = node.name;  // valeur envoyée / utilisée par onclick
+        optionD.text = node.name;   // texte affiché
+        selectD.appendChild(optionD); // ajoute l'option au select
+    });
 }
 
 
@@ -47,7 +64,7 @@ function drawEdge(from, to, weight) {
     ctx.moveTo(fromNode.x, fromNode.y);
     ctx.lineTo(toNode.x, toNode.y);
     ctx.strokeStyle = "black";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.fillStyle = "black";
@@ -90,7 +107,12 @@ async function getPath(scr, dst) {
     const response = await fetch(`/algo/dijkstra?src=${scr}&dst=${dst}`);
     const data = await response.json();
 
-    document.getElementById("path").textContent = data.path.join(" → ");
+    if (data.distance === -1) data.distance = "Infini";
+
+    if (data.path.length === 0) document.getElementById("path").textContent = "Aucun chemin trouvé";
+    else document.getElementById("path").textContent = data.path.join(" → ");
+
+
     document.getElementById("distance").textContent = data.distance;
 
     // remplir les listes globales
@@ -133,25 +155,6 @@ async function getTeams(scr, dst) {
 }
 
 
-function createInput(x, y) {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Nom";
-    input.style.position = "absolute";
-    input.style.left = x + "px";  // position dans la page
-    input.style.top = y + "px";
-    input.style.transform = "translate(-50%, -50%)";
-    input.style.width = "40px";    // largeur fixe
-    input.style.height = "20px";   // hauteur si tu veux
-    input.style.fontSize = "12px"; // taille du texte
-    input.style.padding = "2px";   // petit padding interne
-
-    input.style.zIndex = 1000;
-
-    document.body.appendChild(input);
-    input.focus();
-}
-
 
 let addNodeMode = false;
 let delNodeMode = false;
@@ -167,7 +170,7 @@ async function addNodeBdd(node) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(node) // node = {name: 'N1', x: 200, y: 150, capacity: 0}
+        body: JSON.stringify(node)
     });
 
     const data = await response.json();
@@ -180,17 +183,22 @@ async function addEdgeBdd(edge) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(edge) // edge = {from: 'N1', to: 'N2', weight: 10}
+        body: JSON.stringify(edge)
     });
 
     const data = await response.json();
     console.log('Réponse serveur :', data);
 }
 
-async function delNodeBdd(name) {
-    const res = await fetch("/graph/node/" + name, {
-        method: "DELETE"
+async function delNodeBdd(node) {
+    const res = await fetch("/graph/node", {
+        method: "DELETE",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(node)
     });
+
     const data = await res.json();
     console.log(data);
 }
@@ -201,7 +209,7 @@ async function delEdgeBdd(edge) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(edge) // node = {name: 'N1', x: 200, y: 150, capacity: 0}
+        body: JSON.stringify(edge)
     });
 
     const data = await response.json();
@@ -245,6 +253,9 @@ canvas.addEventListener("click", (event) => {
             if (validated) return; // déjà validé → ne rien faire
             validated = true;
 
+            const exists = nodes.some(node => node.name === input.value.trim());
+            if (exists) input.value = "";
+
             const name = input.value.trim() || "N" + (++nodeCount);
             input.remove();
 
@@ -254,7 +265,7 @@ canvas.addEventListener("click", (event) => {
             nodes.push(newNode);
             addNodeBdd(newNode);
 
-            drawNode(x, y, name);
+            drawGraph();
 
             //addNodeMode = false; // réactive le bouton pour ajouter le suivant
             addPending = false;
@@ -281,7 +292,7 @@ canvas.addEventListener("click", (event) => {
 
                 edges = edges.filter(e => e.from !== n.name && e.to !== n.name);
 
-                delNodeBdd(n.name);
+                delNodeBdd(n);
 
                 break;
             }
@@ -323,7 +334,7 @@ canvas.addEventListener("click", (event) => {
                 const to = clickedNode.name;
                 
                 // Vérifier si l'arête existe déjà
-                const edgeExists = edges.some(e => e.from === from && e.to === to);
+                const edgeExists = edges.some(e => (e.from === from && e.to === to) || (e.from === to && e.to === from));
                 
                 if (!edgeExists) {
                     // Création de l'input
@@ -351,7 +362,7 @@ canvas.addEventListener("click", (event) => {
                         validated = true;
 
                         const weight = input.value.trim() || "1";
-                        const weightValue = parseInt(weight) || 1;
+                        const weightValue = parseFloat(weight) || 1;
                         input.remove();
 
                         const newEdge = { from: from, to: to, weight: weightValue };
@@ -409,38 +420,50 @@ canvas.addEventListener("click", (event) => {
         drawGraph();
     }
 
+
+
+
     
 });
 
 
 
+const actionSelect = document.getElementById("actionSelect");
+const actionBtn = document.getElementById("actionBtn");
+
+actionSelect.addEventListener("change", function () {
+    addNodeMode = false;
+    delNodeMode = false;
+    addEdgeMode = false;
+    delEdgeMode = false;
+
+    addPending = false;
+    selectedNodeForEdge = null;
+
+    actionBtn.style.backgroundColor = "#eee";
+
+    document.querySelectorAll("input").forEach(inp => inp.remove());
+});
+
+
+
 function modifGraph() {
+    console.log(addPending);
     const action = document.getElementById("actionSelect").value;
 
-    if (action === "addNode") {
-        addNodeMode = !addNodeMode;
-        delNodeMode = false;
-        addEdgeMode = false;
-        delEdgeMode = false;
-    }
-    else if (action === "delNode") {
-        addNodeMode = false;
-        delNodeMode = !delNodeMode;
-        addEdgeMode = false;
-        delEdgeMode = false;
-    }
-    else if (action === "addEdge") {
-        addNodeMode = false;
-        delNodeMode = false;
-        addEdgeMode = !addEdgeMode;
-        delEdgeMode = false;
-    }
-    else if (action === "delEdge") {
-        addNodeMode = false;
-        delNodeMode = false;
-        addEdgeMode = false;
-        delEdgeMode = !delEdgeMode;
-    }
+    if (action === "addNode") addNodeMode = !addNodeMode;
+    else if (action === "delNode") delNodeMode = !delNodeMode;
+    else if (action === "addEdge")  addEdgeMode = !addEdgeMode;
+    else if (action === "delEdge") delEdgeMode = !delEdgeMode;
+
+
+    if (addNodeMode) actionBtn.style.backgroundColor = "#4CAF50";
+    else if (delNodeMode) actionBtn.style.backgroundColor = "#e53935";
+    else if (addEdgeMode) actionBtn.style.backgroundColor = "#4CAF50";
+    else if (delEdgeMode) actionBtn.style.backgroundColor = "#e53935";
+    else actionBtn.style.backgroundColor = "#eee";
+
+
 }
 
 
@@ -448,21 +471,6 @@ function modifGraph() {
 async function main() {
     await getGraph();
     
-    const selectS = document.getElementById('source');
-    const selectD = document.getElementById('destination');
-
-    nodes.forEach(node => {
-        const optionS = document.createElement('option'); // crée une option
-        optionS.value = node.name;  // valeur envoyée / utilisée par onclick
-        optionS.text = node.name;   // texte affiché
-        selectS.appendChild(optionS); // ajoute l'option au select
-
-        const optionD = document.createElement('option'); // crée une option
-        optionD.value = node.name;  // valeur envoyée / utilisée par onclick
-        optionD.text = node.name;   // texte affiché
-        selectD.appendChild(optionD); // ajoute l'option au select
-    });
-
     const canvas = document.getElementById("graphCanvas");
 
     // Ajuste la taille réelle du canvas
