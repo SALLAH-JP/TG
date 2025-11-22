@@ -1,9 +1,4 @@
-from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS
 import psycopg2
-
-app = Flask(__name__)
-CORS(app)  # permet à JS d'accéder au backend
 
 
 # --- Connexion PostgreSQL ---
@@ -18,7 +13,6 @@ def get_connection():
 
 
 
-@app.route("/")
 def index():
     return render_template("index.html")
 
@@ -54,18 +48,24 @@ def load_graph():
         }
         edges.append(edge)
 
+
+    # --- Récupérer les edges ---
+    cur.execute("SELECT from_node, to_node, weight FROM contraintes;")
+    cons_data = cur.fetchall()
+
+    cons = []
+    for from_node, to_node, weight in cons_data:
+        con = {
+            "from": from_node,
+            "to": to_node,
+            "weight": weight,
+        }
+        cons.append(con)
+
     cur.close()
     conn.close()
 
-    return nodes, edges
-
-
-@app.route('/graph')
-def get_graph():
-    nodes, edges = load_graph()
-
-    # --- Retourner deux listes ---
-    return jsonify({"nodes": nodes, "edges": edges})
+    return nodes, edges, cons
 
 
 
@@ -105,12 +105,8 @@ def dijkstra(graph, start, goal):
     return None, float('inf')  # Aucun chemin trouvé
 
 
-@app.route("/algo/dijkstra")
-def api_dijkstra():
-    src = request.args.get("src")
-    dst = request.args.get("dst")
-
-    nodes, edges = load_graph()
+def api_dijkstra(src, dst):
+    nodes, edges, cons = load_graph()
     graph = {}
 
     # Initialiser chaque nœud avec une liste vide
@@ -122,10 +118,18 @@ def api_dijkstra():
         source = edge["from"]
         desti = edge["to"]
         weight = edge["weight"]
-
         # Ajouter (destination, poids)
+        
+
+        for con in cons:
+            if (con["from"] == source and con["to"] == desti) or (con["from"] == desti and con["to"] == source):
+                weight += con["weight"]
+
         graph[source].append((desti, weight))
         graph[desti].append((source, weight))
+
+
+
 
 
     if not src or not dst:
@@ -136,13 +140,11 @@ def api_dijkstra():
         distance = -1
         path = []
 
-    return jsonify({"path": path, "distance": distance})
+    return (path, distance)
 
 
-
-@app.route('/algo/coloring')
 def color():
-    nodes, edges = load_graph()
+    nodes, edges, cons = load_graph()
     graph = {}
 
     # Initialiser chaque nœud avec une liste vide
@@ -160,35 +162,28 @@ def color():
         graph[desti].append((source, weight))
 
 
-    degres = {noeud: len(voisins) for noeud, voisins in graph.items()}
-    
-    # 2️ Trier les noeuds par degré décroissant
-    noeuds_tries = sorted(graph.keys(), key=lambda n: degres[n], reverse=True)
+    node_colors = {}
+    nodes_sorted = sorted(graph.keys(), key=lambda n: len(graph[n]), reverse=True)
 
-    couleur_noeud = {n : 0 for n in graph}
+    for node in nodes_sorted:
+        # trouver les couleurs utilisées par les voisins
+        used_colors = {node_colors[neighbor] for neighbor, _ in graph[node] if neighbor in node_colors}
 
-    # 3️ Colorier chaque noeud
-    for noeud in range(len(noeuds_tries) - 1):
-        voisins = [v[0] for v in graph[noeuds_tries[noeud]]]  # on prend juste le nom des voisins
+        # assigner la plus petite couleur disponible
+        color = 1
+        while color in used_colors:
+            color += 1
 
-        for col_node in couleur_noeud:
-            if not (col_node in voisins) and couleur_noeud[col_node] == 0:
-                couleur_noeud[col_node] = noeud + 1
+        node_colors[node] = color
 
-    return jsonify(couleur_noeud)
-
+    return node_colors
 
 
 
-@app.route('/graph/node', methods=['POST'])
-def add_node():
+
+def add_node(name, x, y):
     conn = get_connection()
     cur = conn.cursor()
-
-    data = request.get_json()
-    name = data.get('name')
-    x = data.get('x')
-    y = data.get('y')
 
     try:
         cur.execute(
@@ -196,10 +191,10 @@ def add_node():
             (name, float(x), float(y))
         )
         conn.commit()
-        return jsonify({"status": "success", "node": name})
+        return "success"
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return "error"
 
 
     cur.close()
@@ -207,16 +202,10 @@ def add_node():
 
 
 
-
-@app.route('/graph/edge', methods=['POST'])
-def add_edge():
+def add_edge(from_node, to_node, weight):
     conn = get_connection()
     cur = conn.cursor()
 
-    data = request.get_json()
-    from_node = data.get('from')
-    to_node = data.get('to')
-    weight = data.get('weight')
 
     try:
         cur.execute(
@@ -224,10 +213,10 @@ def add_edge():
             (from_node, to_node, weight)
         )
         conn.commit()
-        return jsonify({"status": "success", "edge": data})
+        return "success"
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return "error"
 
 
     cur.close()
@@ -236,22 +225,18 @@ def add_edge():
 
 
 
-@app.route('/graph/node', methods=['DELETE'])
-def del_node():
+def del_node(name):
     conn = get_connection()
     cur = conn.cursor()
-
-    data = request.get_json()
-    name = data.get('name')
 
     try:
 
         cur.execute("DELETE FROM nodes WHERE name = %s", (name,))
         conn.commit()
-        return jsonify({"status": "success"})
+        return "success"
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return "error"
 
 
     cur.close()
@@ -259,14 +244,9 @@ def del_node():
 
 
 
-@app.route('/graph/edge', methods=['DELETE'])
-def del_edge():
+def del_edge(from_node, to_node):
     conn = get_connection()
     cur = conn.cursor()
-
-    data = request.get_json()
-    from_node = data.get('from')
-    to_node = data.get('to')
 
     try:
         cur.execute(
@@ -278,10 +258,10 @@ def del_edge():
             (from_node, to_node, to_node, from_node)
         )
         conn.commit()
-        return jsonify({"status": "success", "edge": data})
+        return "success"
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return "error"
 
 
     cur.close()
@@ -289,5 +269,46 @@ def del_edge():
 
 
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+def add_cons(from_node, to_node, weight):
+    conn = get_connection()
+    cur = conn.cursor()
+
+
+    try:
+        cur.execute(
+            "INSERT INTO contraintes (from_node, to_node, weight) VALUES (%s, %s, %s)",
+            (from_node, to_node, weight)
+        )
+        conn.commit()
+        return "success"
+    except Exception as e:
+        conn.rollback()
+        return "error"
+
+
+    cur.close()
+    conn.close()
+
+
+def del_cons(from_node, to_node):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            """
+            DELETE FROM contraintes
+            WHERE ((from_node = %s) AND (to_node = %s))
+               OR ((from_node = %s) AND (to_node = %s))
+            """,
+            (from_node, to_node, to_node, from_node)
+        )
+        conn.commit()
+        return "success"
+    except Exception as e:
+        conn.rollback()
+        return "error"
+
+
+    cur.close()
+    conn.close()

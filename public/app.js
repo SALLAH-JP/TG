@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 
 let nodes = [];
 let edges = [];
+let cons = [];
 let path = [];
 let teams = {};
 const colors = [
@@ -35,6 +36,10 @@ function drawGraph() {
     // Nœuds
     nodes.forEach(node => {
         drawNode(node.x, node.y, node.name);
+    });
+
+    cons.forEach(con => {
+        drawCons(con.from, con.to, con.weight);
     });
 
 
@@ -89,6 +94,44 @@ function drawNode(x, y, name) {
 }
 
 
+function drawCons(from, to, weight) {
+    // Chercher les coordonnées des deux nœuds
+    const n1 = nodes.find(n => n.name === from);
+    const n2 = nodes.find(n => n.name === to);
+
+    if (!n1 || !n2) {
+        console.warn("Contrainte ignorée : noeud introuvable", from, to);
+        return;
+    }
+
+    // Calcul du point au milieu
+    const midX = (n1.x + n2.x) / 2;
+    const midY = (n1.y + n2.y) / 2 - 40;
+
+    // Dessin de l’icône avertissement
+    ctx.beginPath();
+    ctx.arc(midX, midY, 18, 0, Math.PI * 2);  
+    ctx.fillStyle = "yellow";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+
+    // Texte ⚠️ dedans
+    ctx.fillStyle = "black";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⚠️", midX, midY - 1);
+
+    // Valeur au-dessus
+    ctx.font = "12px Arial";
+    ctx.fillText(weight, midX, midY - 25);
+}
+
+
+
+
 async function getGraph() {
     const response = await fetch('/graph');
     const data = await response.json();
@@ -96,6 +139,7 @@ async function getGraph() {
     // remplir les listes globales
     nodes = data.nodes;
     edges = data.edges;
+    cons = data.cons;
 
     nodes.forEach(node => {
         teams[node.name] = 0;
@@ -160,8 +204,11 @@ let addNodeMode = false;
 let delNodeMode = false;
 let addEdgeMode = false;
 let delEdgeMode = false;
+let addConsMode = false;
+let delConsMode = false;
 let addPending = false;
 let selectedNodeForEdge = null;
+let selectedNodeForCons = null;
 
 
 async function addNodeBdd(node) {
@@ -184,6 +231,19 @@ async function addEdgeBdd(edge) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(edge)
+    });
+
+    const data = await response.json();
+    console.log('Réponse serveur :', data);
+}
+
+async function addConsBdd(cons) {
+    const response = await fetch('/graph/cons', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cons)
     });
 
     const data = await response.json();
@@ -216,6 +276,19 @@ async function delEdgeBdd(edge) {
     console.log('Réponse serveur :', data);
 }
 
+
+async function delConsBdd(cons) {
+    const response = await fetch('/graph/cons', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cons)
+    });
+
+    const data = await response.json();
+    console.log('Réponse serveur :', data);
+}
 
 canvas.addEventListener("click", (event) => {
     if (addPending) return;
@@ -423,6 +496,125 @@ canvas.addEventListener("click", (event) => {
 
 
 
+    if (addConsMode) {
+        // Chercher si on a cliqué sur un nœud
+        let clickedNode = null;
+        
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i];
+            const distance = Math.hypot(x - n.x, y - n.y);
+            
+            if (distance < 35) {
+                clickedNode = n;
+                break;
+            }
+        }
+
+        if (clickedNode) {
+            if (selectedNodeForCons === null) {
+                // Premier nœud sélectionné
+                selectedNodeForCons = clickedNode;
+                console.log(`Nœud source sélectionné: ${clickedNode.name}`);
+            } else if (selectedNodeForCons === clickedNode) {
+                // Clic sur le même nœud → annuler
+                selectedNodeForCons = null;
+                console.log("Sélection annulée");
+            } else {
+                // Deuxième nœud sélectionné → créer l'arête
+                const from = selectedNodeForCons.name;
+                const to = clickedNode.name;
+                
+                // Vérifier si l'arête existe déjà
+                const consExists = cons.some(e => (e.from === from && e.to === to) || (e.from === to && e.to === from));
+                const edgeExists = edges.some(e => (e.from === from && e.to === to) || (e.from === to && e.to === from));
+                
+                if (!consExists && edgeExists) {
+                    // Création de l'input
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.placeholder = "Nom";
+                    input.style.position = "absolute";
+                    input.style.left = event.clientX + "px";  // position dans la page
+                    input.style.top = event.clientY + "px";
+                    input.style.transform = "translate(-50%, -50%)";
+                    input.style.width = "40px";    // largeur fixe
+                    input.style.height = "20px";   // hauteur si tu veux
+                    input.style.fontSize = "12px"; // taille du texte
+                    input.style.padding = "2px";   // petit padding interne
+
+                    input.style.zIndex = 1000;
+
+                    document.body.appendChild(input);
+                    input.focus();
+
+                    let validated = false;
+
+                    function validerCons() {
+                        if (validated) return;
+                        validated = true;
+
+                        const weight = input.value.trim() || "1";
+                        const weightValue = parseFloat(weight) || 1;
+                        input.remove();
+
+                        const newCons = { from: from, to: to, weight: weightValue};
+                        cons.push(newCons);
+                        addConsBdd(newCons);
+
+                        console.log(`Const créée: ${from} → ${to} (poids: ${weightValue})`);
+                        
+                        selectedNodeForCons = null;
+                        drawGraph();
+                    }
+
+                    input.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") validerCons();
+                    });
+
+                } else {
+                    alert("Cette Constante existe déjà!");
+                    selectedNodeForCons = null;
+                }
+            }
+        }
+
+        addPending = false;
+    }
+
+
+
+
+    if (delConsMode) {
+        const tolerance = 5; // pixels autour de la ligne
+
+        // Parcours toutes les arêtes
+        for (let i = cons.length - 1; i >= 0; i--) {
+            const e = cons[i];
+            const fromNode = nodes.find(n => n.name === e.from);
+            const toNode = nodes.find(n => n.name === e.to);
+            if (!fromNode || !toNode) continue;
+
+            // Calcul distance point -> segment
+            const dx = toNode.x - fromNode.x;
+            const dy = toNode.y - fromNode.y;
+            const length = Math.hypot(dx, dy);
+            const distance = Math.abs(dy*x - dx*y + toNode.x*fromNode.y - toNode.y*fromNode.x) / length;
+
+            if (distance <= tolerance) {
+                cons.splice(i, 1);
+                delConsBdd(e);
+                
+                break;
+            }
+        }
+
+        addPending = false;
+        drawGraph();
+    }
+
+
+
+
     
 });
 
@@ -436,6 +628,9 @@ actionSelect.addEventListener("change", function () {
     delNodeMode = false;
     addEdgeMode = false;
     delEdgeMode = false;
+    addConsMode = false;
+    delConsMode = false;
+
 
     addPending = false;
     selectedNodeForEdge = null;
@@ -455,12 +650,16 @@ function modifGraph() {
     else if (action === "delNode") delNodeMode = !delNodeMode;
     else if (action === "addEdge")  addEdgeMode = !addEdgeMode;
     else if (action === "delEdge") delEdgeMode = !delEdgeMode;
+    else if (action === "addCons")  addConsMode = !addConsMode;
+    else if (action === "delCons") delConsMode = !delConsMode;
 
 
     if (addNodeMode) actionBtn.style.backgroundColor = "#4CAF50";
     else if (delNodeMode) actionBtn.style.backgroundColor = "#e53935";
     else if (addEdgeMode) actionBtn.style.backgroundColor = "#4CAF50";
     else if (delEdgeMode) actionBtn.style.backgroundColor = "#e53935";
+    else if (addConsMode) actionBtn.style.backgroundColor = "#4CAF50";
+    else if (delConsMode) actionBtn.style.backgroundColor = "#e53935";
     else actionBtn.style.backgroundColor = "#eee";
 
 

@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>WasteGraph — Collecte des déchets</title>
-	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
 	<header>
@@ -28,6 +28,8 @@
 				    <option value="delNode">Supprimer un nœud</option>
 				    <option value="addEdge">Ajouter une arête</option>
 				    <option value="delEdge">Supprimer une arête</option>
+				    <option value="addCons">Ajouter une contrainte</option>
+				    <option value="delCons">Supprimer une contrainte</option>
 				  </select>
 
 				  <button id="actionBtn" onclick="modifGraph()">OK</button>
@@ -57,6 +59,6 @@
 
 	</main>
 
-	<script src="{{ url_for('static', filename='app.js') }}"></script>
+	<script src="app.js"></script>
 </body>
 </html>

@@ -12,6 +12,12 @@ CREATE TABLE edges (
     undirected BOOLEAN DEFAULT TRUE
 );
 
+CREATE TABLE contraintes (
+	id SERIAL PRIMARY KEY,
+	from_node TEXT NOT NULL REFERENCES nodes(name) ON DELETE CASCADE,
+    to_node   TEXT NOT NULL REFERENCES nodes(name) ON DELETE CASCADE,
+	weight FLOAT NOT NULL
+)
 
 -- Nodes
 INSERT INTO nodes (name, x, y) VALUES ('DEPOT', 120, 260);
@@ -47,5 +53,7 @@ INSERT INTO edges (from_node, to_node, weight, undirected) VALUES ('C', 'G', 1.5
 -- B ↔ G (déjà ajouté)  
 -- D ↔ B (déjà ajouté)
 -- autres arêtes déjà couvertes par non-orienté
+DROP TABLE nodes;
+DROP TABLE edges;
 
 SELECT * FROM nodes;
